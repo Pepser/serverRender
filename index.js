@@ -54,6 +54,38 @@ app.post('/register', async (req, res) => {
     res.status(500).json({ message: 'Errore server' });
   }
 });
+// Endpoint login
+app.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  if(!email || !password) {
+    return res.status(400).json({ message: 'Email e password sono richiesti' });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: 'Credenziali non valide' });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ message: 'Credenziali non valide' });
+    }
+
+    // Genera token JWT
+    const token = jwt.sign(
+      { userId: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    res.json({ message: 'Login effettuato con successo', token });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Errore server' });
+  }
+});
 
 app.listen(port, () => {
   console.log(`Server attivo su http://localhost:${port}`);
